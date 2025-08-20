@@ -1,166 +1,116 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <!-- Header -->
-    <header class="bg-white shadow">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center py-6">
-          <div class="flex items-center">
-            <div class="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
-              <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-2m-14 0h2m-2 0h-2m16 0v-2a2 2 0 00-2-2H7a2 2 0 00-2 2v2" />
-              </svg>
-            </div>
-            <div>
-              <h1 class="text-2xl font-bold text-gray-900">Dashboard OEE</h1>
-              <p class="text-sm text-gray-600">Fábrica de Pasta Rosana C.A.</p>
-            </div>
+  <div class="min-h-screen bg-gray-100">
+
+    <div v-if="oeeStore.isLoading && !oeeStore.dashboardData" class="fixed inset-0 bg-white flex flex-col items-center justify-center z-50">
+      <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600"></div>
+      <p class="mt-4 text-gray-600">Cargando datos...</p>
+    </div>
+
+    <div v-if="oeeStore.error" class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md shadow-md" role="alert">
+            <p class="font-bold">Error de Conexión</p>
+            <p>{{ oeeStore.error }}</p>
+        </div>
+    </div>
+
+    <div v-if="oeeStore.dashboardData" class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Dashboard OEE</h1>
+          <p class="text-gray-600 mt-1">
+            Monitoreo en tiempo real - <span class="font-medium">{{ currentDate }}</span>
+          </p>
+        </div>
+        <button @click="oeeStore.fetchDashboardData" :disabled="oeeStore.isLoading" class="mt-4 sm:mt-0 p-2 rounded-full hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Refrescar datos">
+            <svg class="w-6 h-6 text-gray-600" :class="{'animate-spin': oeeStore.isLoading}" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M4 4l5 5M20 20l-5-5"></path></svg>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <KPICard
+          title="OEE Promedio"
+          :value="oeeStore.dashboardData.oee_promedio.toFixed(1)"
+          suffix="%"
+        />
+        <KPICard
+          title="Disponibilidad"
+          :value="oeeStore.dashboardData.disponibilidad_promedio.toFixed(1)"
+          suffix="%"
+        />
+        <KPICard
+          title="Rendimiento"
+          :value="oeeStore.dashboardData.rendimiento_promedio.toFixed(1)"
+          suffix="%"
+        />
+        <KPICard
+          title="Calidad"
+          :value="oeeStore.dashboardData.calidad_promedio.toFixed(1)"
+          suffix="%"
+        />
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-1">
+          <h2 class="text-xl font-semibold mb-4 text-gray-800">Estado por Área</h2>
+          <div class="space-y-4">
+            <AreaStatusCard
+              v-for="area in oeeStore.areasStatus"
+              :key="area.id"
+              :area="area"
+            />
           </div>
-          
-          <div class="flex items-center space-x-4">
-            <!-- Usuario info -->
-            <div class="text-right">
-              <p class="text-sm font-medium text-gray-900">{{ authStore.userName }}</p>
-              <p class="text-xs text-gray-500">{{ authStore.userRole }}</p>
-            </div>
-            
-            <!-- Logout -->
-            <button
-              @click="handleLogout"
-              class="btn-industrial bg-red-600 text-white hover:bg-red-700 py-2 px-4"
-            >
-              Cerrar Sesión
-            </button>
-          </div>
+        </div>
+
+        <div class="lg:col-span-2">
+          <h2 class="text-xl font-semibold mb-4 text-gray-800">Registros Recientes</h2>
+          <RecentRecordsTable :records="oeeStore.recentRecords" />
         </div>
       </div>
-    </header>
 
-    <!-- Main Content -->
-    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-      <!-- Estado de conexión con API -->
-      <div class="px-4 py-6 sm:px-0">
-        <div v-if="isLoading" class="text-center py-12">
-          <svg class="animate-spin h-8 w-8 text-blue-600 mx-auto" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          <p class="mt-2 text-gray-600">Cargando datos...</p>
-        </div>
-
-        <div v-else>
-          <!-- Test de conexión API -->
-          <div class="bg-white overflow-hidden shadow rounded-lg mb-6">
-            <div class="px-4 py-5 sm:p-6">
-              <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
-                Estado de Conexión API
-              </h3>
-              <div class="flex items-center space-x-4">
-                <div class="flex-1">
-                  <div class="flex items-center">
-                    <div
-                      :class="apiStatus === 'connected' ? 'bg-green-400' : 'bg-red-400'"
-                      class="h-3 w-3 rounded-full mr-2"
-                    ></div>
-                    <span class="text-sm font-medium">
-                      {{ apiStatus === 'connected' ? 'Conectado' : 'Desconectado' }}
-                    </span>
-                  </div>
-                  <p class="text-xs text-gray-500 mt-1">
-                    Django API: {{ apiStatus === 'connected' ? 'Funcionando' : 'No disponible' }}
-                  </p>
-                </div>
-                <button
-                  @click="testConnection"
-                  class="btn-industrial bg-blue-600 text-white hover:bg-blue-700 text-sm py-2 px-3"
-                >
-                  Probar Conexión
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Áreas cargadas -->
-          <div v-if="areas.length > 0" class="bg-white overflow-hidden shadow rounded-lg">
-            <div class="px-4 py-5 sm:p-6">
-              <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
-                Áreas de Producción ({{ areas.length }})
-              </h3>
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div
-                  v-for="area in areas"
-                  :key="area.id"
-                  class="card-oee border-l-blue-500"
-                >
-                  <h4 class="font-semibold text-gray-900">{{ area.nombre }}</h4>
-                  <p class="text-sm text-gray-600">{{ area.tipo }}</p>
-                  <p class="text-xs text-gray-500 mt-1">
-                    Capacidad: {{ area.capacidad_teorica }} 
-                    {{ area.tipo === 'prensa' ? 'KG/H' : 'Bultos/H' }}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Mensaje si no hay áreas -->
-          <div v-else class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <p class="text-yellow-800">
-              No se pudieron cargar las áreas de producción. 
-              Verifica que el backend Django esté funcionando.
-            </p>
-          </div>
-        </div>
+      <div class="mt-8 bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800">Tendencia OEE - Últimos 7 días</h2>
+        <OeeLineChart :data="oeeStore.lineChartData" />
       </div>
-    </main>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { useAuthStore } from '@/stores/auth';
-import api from '@/services/api';
-import type { Area } from '@/types/oee';
+import { onMounted, onUnmounted, computed } from 'vue'
+import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
+import { useOEEStore } from '@/stores/oee'
 
-const router = useRouter();
-const authStore = useAuthStore();
+// Importación de Componentes
+import KPICard from '@/components/KPICard.vue'
+import AreaStatusCard from '@/components/AreaStatusCard.vue'
+import RecentRecordsTable from '@/components/RecentRecordsTable.vue'
+import OeeLineChart from '@/components/OeeLineChart.vue'
 
-const isLoading = ref(true);
-const apiStatus = ref<'connected' | 'disconnected'>('disconnected');
-const areas = ref<Area[]>([]);
+const oeeStore = useOEEStore()
+let refreshInterval: number | undefined
 
-const handleLogout = async () => {
-  await authStore.logout();
-  router.push('/login');
-};
+// --- Propiedades Computadas ---
+const currentDate = computed(() =>
+  format(new Date(), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es }),
+)
 
-const testConnection = async () => {
-  try {
-    const response = await api.get('/areas/');
-    apiStatus.value = 'connected';
-    areas.value = response.data;
-  } catch (error) {
-    console.error('Error de conexión:', error);
-    apiStatus.value = 'disconnected';
-    areas.value = [];
-  }
-};
-
-const loadInitialData = async () => {
-  isLoading.value = true;
-  
-  await testConnection();
-  
-  isLoading.value = false;
-};
-
+// --- Ciclo de Vida ---
 onMounted(() => {
-  // Verificar autenticación
-  if (!authStore.isAuthenticated) {
-    router.push('/login');
-    return;
+  if (!oeeStore.dashboardData) {
+    oeeStore.fetchDashboardData()
   }
-  
-  loadInitialData();
-});
+  // Configuro el refresco automático cada 30 segundos
+  refreshInterval = setInterval(() => {
+    console.log("Refrescando datos del dashboard...")
+    oeeStore.fetchDashboardData()
+  }, 30000)
+})
+
+onUnmounted(() => {
+  // Limpio el intervalo al destruir el componente para evitar memory leaks
+  if (refreshInterval) {
+    clearInterval(refreshInterval)
+  }
+})
 </script>
