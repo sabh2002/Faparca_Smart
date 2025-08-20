@@ -1,0 +1,29 @@
+ # Directorios de Python y Django
+*.pyc
+__pycache__/
+*.sqlite3
+.venv/
+env/
+venv/
+media/
+local_settings.py
+
+# Archivos de sistema y logs
+.DS_Store
+Thumbs.db
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.idea/
+.vscode/
+
+# Directorios y archivos de Node.js y Vue
+/node_modules
+/dist
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+/coverage
+/build

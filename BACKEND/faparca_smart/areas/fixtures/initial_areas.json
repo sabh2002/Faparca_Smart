@@ -1,0 +1,67 @@
+[
+  {
+    "model": "areas.area",
+    "pk": 1,
+    "fields": {
+      "nombre": "Empaque Cobra",
+      "codigo": "EMPAQUE_COBRA",
+      "tipo": "empaque",
+      "capacidad_teorica": 2500,
+      "capacidad_real": 2300,
+      "activa": true,
+      "created_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "areas.area", 
+    "pk": 2,
+    "fields": {
+      "nombre": "Empaque P-10",
+      "codigo": "EMPAQUE_P10",
+      "tipo": "empaque", 
+      "capacidad_teorica": 2000,
+      "capacidad_real": 1850,
+      "activa": true,
+      "created_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "areas.area",
+    "pk": 3, 
+    "fields": {
+      "nombre": "Prensa Cobra",
+      "codigo": "PRENSA_COBRA",
+      "tipo": "prensa",
+      "capacidad_teorica": 1600,
+      "capacidad_real": 1283,
+      "activa": true,
+      "created_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "areas.area",
+    "pk": 4,
+    "fields": {
+      "nombre": "Prensa P-10", 
+      "codigo": "PRENSA_P10",
+      "tipo": "prensa",
+      "capacidad_teorica": 1100,
+      "capacidad_real": 960,
+      "activa": true,
+      "created_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "areas.area",
+    "pk": 5,
+    "fields": {
+      "nombre": "Tallarín",
+      "codigo": "TALLARIN", 
+      "tipo": "empaque",
+      "capacidad_teorica": 1800,
+      "capacidad_real": 1650,
+      "activa": true,
+      "created_at": "2025-01-01T00:00:00Z"
+    }
+  }
+]

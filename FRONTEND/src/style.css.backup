@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Estilos específicos para sistema industrial */
+.btn-industrial {
+  @apply px-6 py-3 font-semibold rounded-lg transition-all duration-200 min-h-[48px];
+}
+
+.card-oee {
+  @apply bg-white rounded-lg shadow-md p-4 border-l-4;
+}
+
+.input-industrial {
+  @apply w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none text-lg;
+}
