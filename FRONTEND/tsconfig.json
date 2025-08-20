@@ -1,11 +1,154 @@
 {
-  "files": [],
+  "compilerOptions": {
+    // Target y módulos
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    
+    // Resolución de rutas
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/components/*": ["./src/components/*"],
+      "@/views/*": ["./src/views/*"],
+      "@/stores/*": ["./src/stores/*"],
+      "@/services/*": ["./src/services/*"],
+      "@/types/*": ["./src/types/*"],
+      "@/utils/*": ["./src/utils/*"],
+      "@/assets/*": ["./src/assets/*"],
+      "@/config/*": ["./src/config/*"]
+    },
+    "resolveJsonModule": true,
+    
+    // Configuración de tipos
+    "allowImportingTsExtensions": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "verbatimModuleSyntax": true,
+    
+    // Verificación de tipos estricta
+    "strict": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": false,
+    "noUncheckedIndexedAccess": false,
+    
+    // Verificaciones adicionales
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitUseStrict": false,
+    "noStrictGenericChecks": false,
+    "suppressExcessPropertyErrors": false,
+    "suppressImplicitAnyIndexErrors": false,
+    
+    // Configuración de decoradores (para futuro uso)
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    
+    // JSX (por si se usa en el futuro)
+    "jsx": "preserve",
+    "jsxFactory": "h",
+    "jsxFragmentFactory": "Fragment",
+    
+    // Source maps y debugging
+    "sourceMap": true,
+    "declaration": false,
+    "declarationMap": false,
+    "inlineSourceMap": false,
+    "inlineSources": false,
+    
+    // Interoperabilidad
+    "allowJs": true,
+    "checkJs": false,
+    "skipLibCheck": true,
+    
+    // Configuración de salida
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "removeComments": false,
+    "downlevelIteration": true,
+    "importHelpers": true,
+    
+    // Configuración para Vue 3
+    "useDefineForClassFields": true,
+    
+    // Configuración de tipos de Node
+    "types": [
+      "node",
+      "vite/client"
+    ],
+    
+    // Configuración para desarrollo
+    "incremental": true,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.tsbuildinfo"
+  },
+  
+  // Archivos incluidos
+  "include": [
+    "env.d.ts",
+    "src/**/*",
+    "src/**/*.vue",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.js",
+    "src/**/*.jsx",
+    "vite.config.*",
+    "vitest.config.*",
+    "cypress.config.*",
+    "nightwatch.conf.*",
+    "playwright.config.*"
+  ],
+  
+  // Archivos excluidos
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+    ".nyc_output",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/*.spec.js",
+    "**/*.test.js",
+    "**/node_modules/**",
+    "src/**/__tests__/*",
+    "src/**/*.stories.ts",
+    "src/**/*.stories.js"
+  ],
+  
+  // Referencias a otros proyectos TypeScript
   "references": [
     {
-      "path": "./tsconfig.node.json"
+      "path": "./tsconfig.app.json"
     },
     {
-      "path": "./tsconfig.app.json"
+      "path": "./tsconfig.node.json"
     }
-  ]
+  ],
+  
+  // Configuración para editores
+  "compileOnSave": false,
+  
+  // TypeScript específico para Vue
+  "vueCompilerOptions": {
+    "target": 3,
+    "strictTemplates": true,
+    "experimentalCompatMode": 2,
+    "experimentalTemplateCompilerOptions": {
+      "compatConfig": {
+        "MODE": 3
+      }
+    }
+  }
 }

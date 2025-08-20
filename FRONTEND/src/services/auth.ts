@@ -1,275 +1,375 @@
-import api, { setAuthToken, clearAuthToken, isTokenExpired, extractErrorMessage } from './api';
-import type { LoginData, AuthResponse, Usuario } from '@/types/oee';
+// services/auth.ts
+import { api } from './api'
+import { API_ENDPOINTS, STORAGE_KEYS } from '@/config'
+import type { Usuario, LoginData, LoginResponse } from '@/types/oee'
 
-const USER_STORAGE_KEY = import.meta.env.VITE_USER_STORAGE_KEY || 'user_data';
-const TOKEN_STORAGE_KEY = import.meta.env.VITE_TOKEN_STORAGE_KEY || 'auth_token';
-const SESSION_TIMEOUT = Number(import.meta.env.VITE_SESSION_TIMEOUT) || 86400000; // 24 horas
-const TOKEN_REFRESH_INTERVAL = Number(import.meta.env.VITE_TOKEN_REFRESH_INTERVAL) || 3600000; // 1 hora
+/**
+ * Servicio de autenticación
+ * Maneja login, logout, verificación de tokens y gestión de sesión
+ */
+class AuthService {
+  private static instance: AuthService
+  private refreshTimer: number | null = null
 
-export class AuthService {
-  private static refreshTimer: number | null = null;
-  private static sessionTimer: number | null = null;
-  
-  static async login(credentials: LoginData): Promise<AuthResponse> {
+  constructor() {
+    if (AuthService.instance) {
+      return AuthService.instance
+    }
+    AuthService.instance = this
+  }
+
+  /**
+   * Realizar login
+   */
+  async login(credentials: LoginData): Promise<LoginResponse> {
     try {
-      const response = await api.post('/auth/login/', credentials);
-      const { token, expires_at, expires_in, user, message } = response.data;
-      
-      // Guardar token con información de expiración
-      setAuthToken(token, expires_at);
-      
-      // Guardar datos de usuario
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
-      
-      // Configurar auto-refresh del token
-      this.setupTokenRefresh(expires_in);
-      
-      // Configurar timeout de sesión
-      this.setupSessionTimeout();
-      
-      return { 
-        token, 
-        user,
-        expires_at,
-        message: message || 'Login exitoso'
-      };
-    } catch (error: any) {
-      const errorMessage = extractErrorMessage(error);
-      
-      // Limpiar cualquier dato residual
-      this.clearAuthData();
-      
-      throw new Error(errorMessage);
-    }
-  }
+      const response = await api.post(API_ENDPOINTS.LOGIN, credentials)
+      const data: LoginResponse = response.data
 
-  static async logout(): Promise<void> {
-    try {
-      // Intentar logout en el servidor
-      await api.post('/auth/logout/');
-    } catch (error) {
-      console.error('Error al cerrar sesión en el servidor:', error);
-    } finally {
-      // Limpiar datos locales independientemente del resultado
-      this.clearAuthData();
-    }
-  }
-  
-  static async refreshToken(): Promise<void> {
-    try {
-      const response = await api.post('/auth/refresh/');
-      const { token, expires_at, expires_in } = response.data;
-      
-      // Actualizar token
-      setAuthToken(token, expires_at);
-      
-      // Reconfigurar auto-refresh
-      this.setupTokenRefresh(expires_in);
-      
-      console.log('Token refrescado exitosamente');
-    } catch (error) {
-      console.error('Error al refrescar token:', error);
-      
-      // Si falla el refresh, hacer logout
-      this.clearAuthData();
-      window.location.href = '/login';
-    }
-  }
-  
-  static async verifyToken(): Promise<boolean> {
-    try {
-      const response = await api.get('/auth/verify/');
-      
-      if (response.data.valid && response.data.user) {
-        // Actualizar datos de usuario
-        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(response.data.user));
-        return true;
-      }
-      
-      return false;
-    } catch (error) {
-      console.error('Token inválido:', error);
-      return false;
-    }
-  }
-  
-  static async changePassword(oldPassword: string, newPassword: string, newPassword2: string): Promise<void> {
-    try {
-      const user = this.getCurrentUser();
-      if (!user) throw new Error('No hay usuario autenticado');
-      
-      await api.post(`/usuarios/${user.id}/change_password/`, {
-        old_password: oldPassword,
-        new_password: newPassword,
-        new_password2: newPassword2
-      });
-      
-      // Después de cambiar la contraseña, el token se revoca
-      // así que limpiamos y redirigimos al login
-      this.clearAuthData();
-      
-    } catch (error: any) {
-      throw new Error(extractErrorMessage(error));
-    }
-  }
+      if (data.token && data.user) {
+        // Guardar token y usuario
+        this.setToken(data.token)
+        this.setUser(data.user)
 
-  static getCurrentUser(): Usuario | null {
-    const userData = localStorage.getItem(USER_STORAGE_KEY);
-    return userData ? JSON.parse(userData) : null;
-  }
+        // Configurar header de autorización
+        this.setAuthHeader(data.token)
 
-  static getToken(): string | null {
-    const token = localStorage.getItem(TOKEN_STORAGE_KEY);
-    if (!token) return null;
-    
-    try {
-      const tokenData = JSON.parse(token);
-      return tokenData.key || tokenData;
-    } catch {
-      return token;
-    }
-  }
-
-  static isAuthenticated(): boolean {
-    return !!this.getToken() && !isTokenExpired();
-  }
-
-  static hasRole(role: string): boolean {
-    const user = this.getCurrentUser();
-    return user?.rol === role;
-  }
-  
-  static hasAnyRole(roles: string[]): boolean {
-    const user = this.getCurrentUser();
-    return user ? roles.includes(user.rol) : false;
-  }
-
-  static canAccessArea(areaId: number): boolean {
-    const user = this.getCurrentUser();
-    if (!user) return false;
-    
-    // Administradores y supervisores pueden acceder a todo
-    if (['administrador', 'supervisor'].includes(user.rol)) return true;
-    
-    // Operadores solo a su área asignada
-    if (user.rol === 'operador') {
-      return user.area_asignada === areaId;
-    }
-    
-    // Viewers pueden ver todo pero no modificar
-    return user.rol === 'viewer';
-  }
-  
-  static canModifyArea(areaId: number): boolean {
-    const user = this.getCurrentUser();
-    if (!user) return false;
-    
-    // Viewers no pueden modificar
-    if (user.rol === 'viewer') return false;
-    
-    // Administradores y supervisores pueden modificar todo
-    if (['administrador', 'supervisor'].includes(user.rol)) return true;
-    
-    // Operadores solo su área
-    return user.rol === 'operador' && user.area_asignada === areaId;
-  }
-  
-  private static setupTokenRefresh(expiresIn: number) {
-    // Limpiar timer anterior si existe
-    if (this.refreshTimer) {
-      clearTimeout(this.refreshTimer);
-    }
-    
-    // Calcular cuándo refrescar (a la mitad del tiempo de expiración)
-    const refreshTime = Math.max((expiresIn * 1000) / 2, TOKEN_REFRESH_INTERVAL);
-    
-    // Configurar nuevo timer
-    this.refreshTimer = window.setTimeout(() => {
-      this.refreshToken();
-    }, refreshTime);
-  }
-  
-  private static setupSessionTimeout() {
-    // Limpiar timer anterior si existe
-    if (this.sessionTimer) {
-      clearTimeout(this.sessionTimer);
-    }
-    
-    // Configurar timeout de sesión
-    this.sessionTimer = window.setTimeout(() => {
-      console.warn('Sesión expirada por inactividad');
-      this.clearAuthData();
-      window.location.href = '/login';
-    }, SESSION_TIMEOUT);
-  }
-  
-  static resetSessionTimeout() {
-    // Reiniciar el timer de sesión cuando hay actividad
-    this.setupSessionTimeout();
-  }
-  
-  private static clearAuthData() {
-    // Limpiar timers
-    if (this.refreshTimer) {
-      clearTimeout(this.refreshTimer);
-      this.refreshTimer = null;
-    }
-    
-    if (this.sessionTimer) {
-      clearTimeout(this.sessionTimer);
-      this.sessionTimer = null;
-    }
-    
-    // Limpiar storage
-    clearAuthToken();
-    localStorage.removeItem(USER_STORAGE_KEY);
-  }
-  
-  // Método para inicializar el servicio cuando la app carga
-  static async initialize() {
-    if (this.isAuthenticated()) {
-      // Verificar token al cargar
-      const isValid = await this.verifyToken();
-      
-      if (isValid) {
-        // Configurar timers
-        this.setupSessionTimeout();
-        
-        // Programar refresh
-        const token = localStorage.getItem(TOKEN_STORAGE_KEY);
-        if (token) {
-          try {
-            const tokenData = JSON.parse(token);
-            if (tokenData.expires_at) {
-              const expiresAt = new Date(tokenData.expires_at);
-              const now = new Date();
-              const expiresIn = (expiresAt.getTime() - now.getTime()) / 1000;
-              
-              if (expiresIn > 0) {
-                this.setupTokenRefresh(expiresIn);
-              }
-            }
-          } catch {
-            // Token simple sin información de expiración
-          }
+        // Iniciar refresh automático si hay tiempo de expiración
+        if (data.expires_at) {
+          this.startTokenRefresh(data.expires_at)
         }
+
+        return data
       } else {
-        // Token inválido, limpiar
-        this.clearAuthData();
+        throw new Error('Respuesta de login inválida')
+      }
+    } catch (error: any) {
+      console.error('Error en login:', error)
+
+      // Limpiar datos en caso de error
+      this.clearAuthData()
+
+      throw {
+        message: error.response?.data?.message || 'Error al iniciar sesión',
+        errors: error.response?.data?.errors || {},
+        status: error.response?.status
       }
     }
   }
-}
 
-// Detectar actividad del usuario para reset de timeout
-if (typeof window !== 'undefined') {
-  ['mousedown', 'keydown', 'scroll', 'touchstart'].forEach(event => {
-    window.addEventListener(event, () => {
-      if (AuthService.isAuthenticated()) {
-        AuthService.resetSessionTimeout();
+  /**
+   * Realizar logout
+   */
+  async logout(): Promise<void> {
+    try {
+      // Intentar notificar al servidor
+      if (this.getToken()) {
+        await api.post(API_ENDPOINTS.LOGOUT)
       }
-    }, { passive: true });
-  });
+    } catch (error) {
+      console.warn('Error al notificar logout al servidor:', error)
+    } finally {
+      // Limpiar datos locales siempre
+      this.clearAuthData()
+      this.stopTokenRefresh()
+    }
+  }
+
+  /**
+   * Verificar si el usuario está autenticado
+   */
+  isAuthenticated(): boolean {
+    const token = this.getToken()
+    const user = this.getCurrentUser()
+
+    if (!token || !user) {
+      return false
+    }
+
+    // Verificar si el token no ha expirado
+    try {
+      const payload = this.parseTokenPayload(token)
+      if (payload && payload.exp) {
+        const now = Math.floor(Date.now() / 1000)
+        return payload.exp > now
+      }
+    } catch (error) {
+      console.warn('Error al verificar token:', error)
+      return false
+    }
+
+    return true
+  }
+
+  /**
+   * Obtener usuario actual
+   */
+  getCurrentUser(): Usuario | null {
+    try {
+      const userStr = localStorage.getItem(STORAGE_KEYS.USER)
+      return userStr ? JSON.parse(userStr) : null
+    } catch (error) {
+      console.error('Error al obtener usuario:', error)
+      return null
+    }
+  }
+
+  /**
+   * Obtener token actual
+   */
+  getToken(): string | null {
+    return localStorage.getItem(STORAGE_KEYS.TOKEN)
+  }
+
+  /**
+   * Refrescar token
+   */
+  async refreshToken(): Promise<string | null> {
+    try {
+      const currentToken = this.getToken()
+      if (!currentToken) {
+        throw new Error('No hay token para refrescar')
+      }
+
+      const response = await api.post(API_ENDPOINTS.REFRESH, {
+        token: currentToken
+      })
+
+      const newToken = response.data.token
+      if (newToken) {
+        this.setToken(newToken)
+        this.setAuthHeader(newToken)
+
+        // Reiniciar timer de refresh
+        if (response.data.expires_at) {
+          this.startTokenRefresh(response.data.expires_at)
+        }
+
+        return newToken
+      }
+
+      return null
+    } catch (error: any) {
+      console.error('Error al refrescar token:', error)
+
+      // Si falla el refresh, hacer logout
+      this.clearAuthData()
+
+      throw error
+    }
+  }
+
+  /**
+   * Verificar token con el servidor
+   */
+  async verifyToken(): Promise<boolean> {
+    try {
+      const token = this.getToken()
+      if (!token) return false
+
+      await api.post(API_ENDPOINTS.VERIFY, { token })
+      return true
+    } catch (error) {
+      console.warn('Token inválido:', error)
+      return false
+    }
+  }
+
+  /**
+   * Inicializar autenticación desde localStorage
+   */
+  async initializeAuth(): Promise<boolean> {
+    const token = this.getToken()
+    const user = this.getCurrentUser()
+
+    if (!token || !user) {
+      return false
+    }
+
+    // Configurar header de autorización
+    this.setAuthHeader(token)
+
+    // Verificar si el token sigue siendo válido
+    const isValid = await this.verifyToken()
+
+    if (!isValid) {
+      // Intentar refrescar token
+      try {
+        await this.refreshToken()
+        return true
+      } catch (error) {
+        this.clearAuthData()
+        return false
+      }
+    }
+
+    return true
+  }
+
+  /**
+   * Obtener información del perfil del usuario
+   */
+  async getProfile(): Promise<Usuario> {
+    try {
+      const response = await api.get(API_ENDPOINTS.ME)
+      const userData = response.data
+
+      // Actualizar usuario en localStorage
+      this.setUser(userData)
+
+      return userData
+    } catch (error: any) {
+      console.error('Error al obtener perfil:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Cambiar contraseña
+   */
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    try {
+      const user = this.getCurrentUser()
+      if (!user) throw new Error('Usuario no autenticado')
+
+      await api.post(API_ENDPOINTS.CHANGE_PASSWORD(user.id), {
+        current_password: currentPassword,
+        new_password: newPassword
+      })
+    } catch (error: any) {
+      console.error('Error al cambiar contraseña:', error)
+      throw error
+    }
+  }
+
+  // Métodos privados
+
+  private setToken(token: string): void {
+    localStorage.setItem(STORAGE_KEYS.TOKEN, token)
+  }
+
+  private setUser(user: Usuario): void {
+    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user))
+  }
+
+  private setAuthHeader(token: string): void {
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`
+  }
+
+  private clearAuthData(): void {
+    localStorage.removeItem(STORAGE_KEYS.TOKEN)
+    localStorage.removeItem(STORAGE_KEYS.USER)
+    delete api.defaults.headers.common['Authorization']
+  }
+
+  private parseTokenPayload(token: string): any {
+    try {
+      const base64Url = token.split('.')[1]
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      )
+      return JSON.parse(jsonPayload)
+    } catch (error) {
+      console.error('Error al parsear token:', error)
+      return null
+    }
+  }
+
+  private startTokenRefresh(expiresAt: string): void {
+    this.stopTokenRefresh()
+
+    const expirationTime = new Date(expiresAt).getTime()
+    const currentTime = Date.now()
+    const refreshTime = expirationTime - currentTime - (5 * 60 * 1000) // 5 minutos antes
+
+    if (refreshTime > 0) {
+      this.refreshTimer = window.setTimeout(() => {
+        this.refreshToken().catch(error => {
+          console.error('Error en refresh automático:', error)
+        })
+      }, refreshTime)
+    }
+  }
+
+  private stopTokenRefresh(): void {
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer)
+      this.refreshTimer = null
+    }
+  }
+
+  /**
+   * Verificar permisos del usuario
+   */
+  hasRole(role: string): boolean {
+    const user = this.getCurrentUser()
+    return user?.rol === role
+  }
+
+  hasAnyRole(roles: string[]): boolean {
+    const user = this.getCurrentUser()
+    return user ? roles.includes(user.rol) : false
+  }
+
+  canAccess(resource: string, action: string): boolean {
+    const user = this.getCurrentUser()
+    if (!user) return false
+
+    // Lógica de permisos básica
+    switch (user.rol) {
+      case 'administrador':
+        return true // Admin puede todo
+
+      case 'supervisor':
+        return action !== 'delete' || resource !== 'usuarios'
+
+      case 'operador':
+        return resource === 'registros' && ['create', 'read', 'update'].includes(action)
+
+      case 'viewer':
+        return action === 'read'
+
+      default:
+        return false
+    }
+  }
+
+  /**
+   * Obtener tiempo restante de sesión
+   */
+  getSessionTimeRemaining(): number | null {
+    const token = this.getToken()
+    if (!token) return null
+
+    try {
+      const payload = this.parseTokenPayload(token)
+      if (payload && payload.exp) {
+        const expirationTime = payload.exp * 1000 // Convertir a ms
+        const currentTime = Date.now()
+        const remaining = expirationTime - currentTime
+
+        return remaining > 0 ? remaining : 0
+      }
+    } catch (error) {
+      console.error('Error al calcular tiempo de sesión:', error)
+    }
+
+    return null
+  }
+
+  /**
+   * Extender sesión
+   */
+  async extendSession(): Promise<void> {
+    await this.refreshToken()
+  }
 }
 
-export default AuthService;
+// Crear instancia singleton
+const authService = new AuthService()
+
+export default authService
