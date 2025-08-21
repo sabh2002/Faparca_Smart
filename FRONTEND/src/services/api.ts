@@ -6,11 +6,7 @@ import axios, {
   type InternalAxiosRequestConfig
 } from 'axios'
 import { config, STORAGE_KEYS, API_CONFIG } from '@/config'
-const API_CONFIG = {
-  TIMEOUT: 30000,
-  RETRY_ATTEMPTS: 3,
-  RETRY_DELAY: 1000
-}
+
 // ===== CONFIGURACIÓN PRINCIPAL =====
 
 // Crear instancia de Axios
@@ -94,7 +90,7 @@ const getToken = (): string | null => {
  * Establece el token en los headers
  */
 const setAuthHeader = (token: string): void => {
-  api.defaults.headers.common['Authorization'] = `Token ${token}`
+  api.defaults.headers.common['Authorization'] = `Bearer ${token}`
 }
 /**
  * Limpia la autenticación
@@ -120,7 +116,7 @@ api.interceptors.request.use(
     // Agregar token de autenticación si existe
     const token = getToken()
     if (token && !config.headers['Authorization']) {
-  config.headers['Authorization'] = `Token ${token}`
+  config.headers['Authorization'] = `Bearer ${token}`
 }
 
     // Logging en desarrollo
