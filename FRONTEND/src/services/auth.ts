@@ -262,20 +262,60 @@ class AuthService {
     delete api.defaults.headers.common['Authorization']
   }
 
-  private parseTokenPayload(token: string): any {
+  static parseTokenPayload(token: string): any {
     try {
-      const base64Url = token.split('.')[1]
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
-      const jsonPayload = decodeURIComponent(
-        atob(base64)
-          .split('')
-          .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-          .join('')
-      )
-      return JSON.parse(jsonPayload)
+      // Verificar si es un token JWT (contiene puntos)
+      if (token.includes('.')) {
+        // Es un JWT, parsear normalmente
+        const parts = token.split('.');
+        if (parts.length === 3) {
+          const payload = parts[1];
+          const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+          return JSON.parse(decoded);
+        }
+      }
+
+      // Si no es JWT, retornar objeto vacío (token simple de Django)
+      return {};
     } catch (error) {
-      console.error('Error al parsear token:', error)
-      return null
+      console.error('Error al parsear token:', error);
+      return {};
+    }
+  }
+
+  static isAuthenticated(): boolean {
+    const token = this.getToken();
+    if (!token) return false;
+
+    // Para tokens simples de Django, solo verificar que exista
+    // No hay payload para verificar expiración
+    try {
+      const payload = this.parseTokenPayload(token);
+
+      // Si tiene exp (JWT), verificar expiración
+      if (payload.exp) {
+        const now = Math.floor(Date.now() / 1000);
+        return payload.exp > now;
+      }
+
+      // Si no tiene exp (token simple), verificar si no está expirado por isTokenExpired
+      return !isTokenExpired();
+    } catch (error) {
+      console.error('Error verificando autenticación:', error);
+      return false;
+    }
+  }
+
+  static getToken(): string | null {
+    const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
+    if (!token) return null;
+
+    try {
+      const tokenData = JSON.parse(token);
+      return tokenData.key || tokenData;
+    } catch {
+      // Si no es JSON, retornar el token tal como está
+      return token;
     }
   }
 

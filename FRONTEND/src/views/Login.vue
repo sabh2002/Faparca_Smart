@@ -269,45 +269,84 @@ const isFormValid = computed(() => {
          Object.keys(errors.value).length === 0
 })
 
-// Métodos principales
 const handleLogin = async () => {
-  // Limpiar mensajes anteriores
-  clearErrors()
+  clearErrors();
 
-  // Validación básica
   if (!validateForm()) {
-    return
+    return;
   }
 
   try {
-    const success = await authStore.login(form.value)
+    console.log('🔄 Iniciando login...');
+    const success = await authStore.login(form.value);
+    console.log('🔄 Login result:', success);
+
+    // AGREGAR ESTOS LOGS DE DEBUG
+    console.log('🔍 Token después del login:', localStorage.getItem('auth_token'));
+    console.log('🔍 Usuario después del login:', localStorage.getItem('user_data'));
+    console.log('🔍 authStore.isAuthenticated:', authStore.isAuthenticated);
 
     if (success) {
-      successMessage.value = 'Login exitoso. Redirigiendo...'
-      loginAttempts.value = 0
+      successMessage.value = 'Login exitoso. Redirigiendo...';
+      loginAttempts.value = 0;
 
-      // Guardar username si "recordarme" está activo
       if (rememberMe.value) {
-        localStorage.setItem('remembered_username', form.value.username)
+        localStorage.setItem('remembered_username', form.value.username);
       } else {
-        localStorage.removeItem('remembered_username')
+        localStorage.removeItem('remembered_username');
       }
 
-      // Esperar un momento para mostrar el mensaje de éxito
       setTimeout(() => {
-        // Redirigir a la ruta guardada o al dashboard
-        const redirectTo = route.query.redirect as string ||
-                          sessionStorage.getItem('redirect_after_login') ||
-                          '/dashboard'
-        sessionStorage.removeItem('redirect_after_login')
-        router.push(redirectTo)
-      }, 500)
+        console.log('🔄 Intentando redirigir...');
+        const redirectTo = route.query.redirect as string || sessionStorage.getItem('redirect_after_login') || '/dashboard';
+        sessionStorage.removeItem('redirect_after_login');
+        router.push(redirectTo);
+      }, 500);
     }
   } catch (error: any) {
-    loginAttempts.value++
-    handleLoginError(error)
+    console.error('❌ Error en login:', error);
+    loginAttempts.value++;
+    handleLoginError(error);
   }
-}
+};
+// const handleLogin = async () => {
+//   // Limpiar mensajes anteriores
+//   clearErrors()
+
+//   // Validación básica
+//   if (!validateForm()) {
+//     return
+//   }
+
+//   try {
+//     const success = await authStore.login(form.value)
+
+//     if (success) {
+//       successMessage.value = 'Login exitoso. Redirigiendo...'
+//       loginAttempts.value = 0
+
+//       // Guardar username si "recordarme" está activo
+//       if (rememberMe.value) {
+//         localStorage.setItem('remembered_username', form.value.username)
+//       } else {
+//         localStorage.removeItem('remembered_username')
+//       }
+
+//       // Esperar un momento para mostrar el mensaje de éxito
+//       setTimeout(() => {
+//         // Redirigir a la ruta guardada o al dashboard
+//         const redirectTo = route.query.redirect as string ||
+//                           sessionStorage.getItem('redirect_after_login') ||
+//                           '/dashboard'
+//         sessionStorage.removeItem('redirect_after_login')
+//         router.push(redirectTo)
+//       }, 500)
+//     }
+//   } catch (error: any) {
+//     loginAttempts.value++
+//     handleLoginError(error)
+//   }
+// }
 
 const validateForm = (): boolean => {
   const newErrors: Record<string, string> = {}

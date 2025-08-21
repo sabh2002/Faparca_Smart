@@ -12,7 +12,7 @@ const router = createRouter({
       path: '/login',
       name: 'Login',
       component: () => import('@/views/Login.vue'),
-      meta: { 
+      meta: {
         requiresAuth: false,
         title: 'Iniciar Sesión - Sistema OEE'
       }
@@ -21,7 +21,7 @@ const router = createRouter({
       path: '/dashboard',
       name: 'Dashboard',
       component: () => import('@/views/Dashboard.vue'),
-      meta: { 
+      meta: {
         requiresAuth: true,
         title: 'Dashboard - Sistema OEE',
         roles: ['administrador', 'supervisor', 'operador', 'viewer']
@@ -31,7 +31,7 @@ const router = createRouter({
       path: '/registro',
       name: 'Registro',
       component: () => import('@/views/Registro.vue'),
-      meta: { 
+      meta: {
         requiresAuth: true,
         title: 'Registro de Datos - Sistema OEE',
         roles: ['administrador', 'supervisor', 'operador']
@@ -41,7 +41,7 @@ const router = createRouter({
       path: '/reportes',
       name: 'Reportes',
       component: () => import('@/views/Reportes.vue'),
-      meta: { 
+      meta: {
         requiresAuth: true,
         title: 'Reportes - Sistema OEE',
         roles: ['administrador', 'supervisor', 'viewer']
@@ -51,7 +51,7 @@ const router = createRouter({
       path: '/admin',
       name: 'Administracion',
       component: () => import('@/views/Administracion.vue'),
-      meta: { 
+      meta: {
         requiresAuth: true,
         title: 'Administración - Sistema OEE',
         roles: ['administrador']
@@ -71,6 +71,10 @@ const router = createRouter({
 
 // Guard de navegación global
 router.beforeEach((to, from, next) => {
+
+  console.log('🔄 Router guard - Navegando de', from.path, 'a', to.path);
+  console.log('🔍 AuthService.isAuthenticated():', AuthService.isAuthenticated());
+  console.log('🔍 Token en localStorage:', localStorage.getItem('auth_token'));
   // Actualizar título de la página
   document.title = to.meta.title as string || 'Sistema OEE - Fábrica Rosana';
 

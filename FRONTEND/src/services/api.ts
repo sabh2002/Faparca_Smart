@@ -6,7 +6,11 @@ import axios, {
   type InternalAxiosRequestConfig
 } from 'axios'
 import { config, STORAGE_KEYS, API_CONFIG } from '@/config'
-
+const API_CONFIG = {
+  TIMEOUT: 30000,
+  RETRY_ATTEMPTS: 3,
+  RETRY_DELAY: 1000
+}
 // ===== CONFIGURACIÓN PRINCIPAL =====
 
 // Crear instancia de Axios
@@ -90,9 +94,8 @@ const getToken = (): string | null => {
  * Establece el token en los headers
  */
 const setAuthHeader = (token: string): void => {
-  api.defaults.headers.common['Authorization'] = `Bearer ${token}`
+  api.defaults.headers.common['Authorization'] = `Token ${token}`
 }
-
 /**
  * Limpia la autenticación
  */
@@ -117,8 +120,8 @@ api.interceptors.request.use(
     // Agregar token de autenticación si existe
     const token = getToken()
     if (token && !config.headers['Authorization']) {
-      config.headers['Authorization'] = `Bearer ${token}`
-    }
+  config.headers['Authorization'] = `Token ${token}`
+}
 
     // Logging en desarrollo
     if (config.url && import.meta.env.VITE_ENABLE_DEBUG === 'true') {
@@ -222,70 +225,87 @@ api.interceptors.response.use(
 /**
  * Maneja errores 401 (No autorizado)
  */
-async function handleUnauthorized(
+// async function handleUnauthorized(
+//   error: AxiosError,
+//   originalRequest?: InternalAxiosRequestConfig & { _retry?: boolean }
+// ): Promise<any> {
+//   if (!originalRequest || originalRequest._retry) {
+//     clearAuth()
+//     redirectToLogin()
+//     return Promise.reject(error)
+//   }
+
+//   if (isRefreshing) {
+//     // Agregar a la cola de peticiones fallidas
+//     return new Promise((resolve, reject) => {
+//       failedQueue.push({ resolve, reject })
+//     })
+//   }
+
+//   originalRequest._retry = true
+//   isRefreshing = true
+
+//   try {
+//     // Intentar refrescar el token
+//     const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN)
+//     if (!refreshToken) {
+//       throw new Error('No refresh token available')
+//     }
+
+//     const response = await axios.post(`${config.apiUrl}/auth/refresh/`, {
+//       refresh: refreshToken
+//     })
+
+//     const { access, refresh } = response.data
+
+//     // Guardar nuevos tokens
+//     localStorage.setItem(STORAGE_KEYS.TOKEN, access)
+//     if (refresh) {
+//       localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refresh)
+//     }
+
+//     // Actualizar header
+//     setAuthHeader(access)
+
+//     // Procesar cola de peticiones fallidas
+//     failedQueue.forEach(({ resolve }) => resolve(access))
+//     failedQueue = []
+
+//     // Reenviar petición original
+//     originalRequest.headers['Authorization'] = `Bearer ${access}`
+//     return api(originalRequest)
+
+//   } catch (refreshError) {
+//     // Fallo en refresh - limpiar todo y redirigir
+//     failedQueue.forEach(({ reject }) => reject(refreshError))
+//     failedQueue = []
+
+//     clearAuth()
+//     redirectToLogin()
+
+//     return Promise.reject(refreshError)
+//   } finally {
+//     isRefreshing = false
+//   }
+// }
+function handleUnauthorized(
   error: AxiosError,
   originalRequest?: InternalAxiosRequestConfig & { _retry?: boolean }
 ): Promise<any> {
-  if (!originalRequest || originalRequest._retry) {
-    clearAuth()
-    redirectToLogin()
-    return Promise.reject(error)
+  console.warn('Token inválido o sesión expirada. Componente debe manejar la redirección.');
+
+  const isLoginPage = window.location.pathname === '/login';
+  const isDashboardPage = window.location.pathname === '/dashboard';
+
+  if (!isLoginPage && !isDashboardPage) {
+    localStorage.removeItem(STORAGE_KEYS.TOKEN);  // ✅ Corregido
+    localStorage.removeItem(STORAGE_KEYS.USER);   // ✅ Corregido
+
+    sessionStorage.setItem('redirect_after_login', window.location.pathname);
+    window.location.href = '/login';
   }
-
-  if (isRefreshing) {
-    // Agregar a la cola de peticiones fallidas
-    return new Promise((resolve, reject) => {
-      failedQueue.push({ resolve, reject })
-    })
-  }
-
-  originalRequest._retry = true
-  isRefreshing = true
-
-  try {
-    // Intentar refrescar el token
-    const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN)
-    if (!refreshToken) {
-      throw new Error('No refresh token available')
-    }
-
-    const response = await axios.post(`${config.apiUrl}/auth/refresh/`, {
-      refresh: refreshToken
-    })
-
-    const { access, refresh } = response.data
-
-    // Guardar nuevos tokens
-    localStorage.setItem(STORAGE_KEYS.TOKEN, access)
-    if (refresh) {
-      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refresh)
-    }
-
-    // Actualizar header
-    setAuthHeader(access)
-
-    // Procesar cola de peticiones fallidas
-    failedQueue.forEach(({ resolve }) => resolve(access))
-    failedQueue = []
-
-    // Reenviar petición original
-    originalRequest.headers['Authorization'] = `Bearer ${access}`
-    return api(originalRequest)
-
-  } catch (refreshError) {
-    // Fallo en refresh - limpiar todo y redirigir
-    failedQueue.forEach(({ reject }) => reject(refreshError))
-    failedQueue = []
-
-    clearAuth()
-    redirectToLogin()
-
-    return Promise.reject(refreshError)
-  } finally {
-    isRefreshing = false
-  }
+  return Promise.reject(error);
 }
-
 /**
  * Maneja errores 403 (Prohibido)
  */
