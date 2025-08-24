@@ -277,14 +277,11 @@ const handleLogin = async () => {
   }
 
   try {
-    console.log('🔄 Iniciando login...');
+    console.log('🔄 INICIO: Intentando login...');
     const success = await authStore.login(form.value);
-    console.log('🔄 Login result:', success);
-
-    // AGREGAR ESTOS LOGS DE DEBUG
-    console.log('🔍 Token después del login:', localStorage.getItem('auth_token'));
-    console.log('🔍 Usuario después del login:', localStorage.getItem('user_data'));
-    console.log('🔍 authStore.isAuthenticated:', authStore.isAuthenticated);
+    console.log('🔄 RESULTADO LOGIN:', success);
+    console.log('🔄 AUTH STORE isAuthenticated:', authStore.isAuthenticated);
+    console.log('🔄 AUTH STORE user:', authStore.user);
 
     if (success) {
       successMessage.value = 'Login exitoso. Redirigiendo...';
@@ -296,15 +293,27 @@ const handleLogin = async () => {
         localStorage.removeItem('remembered_username');
       }
 
+      console.log('🔄 ANTES DEL TIMEOUT - success es:', success);
+
       setTimeout(() => {
-        console.log('🔄 Intentando redirigir...');
+        console.log('🔄 DENTRO DEL TIMEOUT');
+        console.log('🔄 authStore.isAuthenticated:', authStore.isAuthenticated);
+        console.log('🔄 localStorage token:', localStorage.getItem('auth_token'));
+
         const redirectTo = route.query.redirect as string || sessionStorage.getItem('redirect_after_login') || '/dashboard';
+        console.log('🔄 REDIRIGIENDO A:', redirectTo);
+
         sessionStorage.removeItem('redirect_after_login');
-        router.push(redirectTo);
+
+        // USAR replace en lugar de push para evitar problemas
+        router.replace(redirectTo);
+        console.log('🔄 REDIRECCIÓN ENVIADA');
       }, 500);
+    } else {
+      console.log('❌ LOGIN FALLÓ - success es false');
     }
   } catch (error: any) {
-    console.error('❌ Error en login:', error);
+    console.error('❌ ERROR EN LOGIN:', error);
     loginAttempts.value++;
     handleLoginError(error);
   }

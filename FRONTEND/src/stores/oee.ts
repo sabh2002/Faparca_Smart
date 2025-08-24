@@ -3,13 +3,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { api } from '@/services/api'
 import { API_ENDPOINTS } from '@/config'
-import type {
-  RegistroOEE,
-  Area,
-  DashboardData,
-  ChartData,
-  AreaStatus
-} from '@/types/oee'
+import type { RegistroOEE, Area, DashboardData, ChartData, AreaStatus } from '@/types/oee'
 
 export const useOEEStore = defineStore('oee', () => {
   // State
@@ -28,9 +22,9 @@ export const useOEEStore = defineStore('oee', () => {
   const areasStatus = computed((): AreaStatus[] => {
     if (!dashboardData.value || !areas.value.length) return []
 
-    return areas.value.map(area => {
+    return areas.value.map((area) => {
       // Buscar registros recientes para esta área
-      const areaRecords = registros.value.filter(r => r.area === area.id)
+      const areaRecords = registros.value.filter((r) => r.area === area.id)
       const latestRecord = areaRecords[0] // El más reciente
 
       let status: 'excellent' | 'good' | 'warning' | 'critical' = 'critical'
@@ -50,7 +44,7 @@ export const useOEEStore = defineStore('oee', () => {
         oee: oee,
         status: status,
         ultima_actualizacion: latestRecord?.fecha || '',
-        turno_actual: latestRecord?.turno || 'A'
+        turno_actual: latestRecord?.turno || 'A',
       }
     })
   })
@@ -59,7 +53,7 @@ export const useOEEStore = defineStore('oee', () => {
     if (!registros.value.length) {
       return {
         labels: [],
-        datasets: []
+        datasets: [],
       }
     }
 
@@ -67,20 +61,23 @@ export const useOEEStore = defineStore('oee', () => {
     const today = new Date()
     const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
 
-    const recentRecords = registros.value.filter(record => {
+    const recentRecords = registros.value.filter((record) => {
       const recordDate = new Date(record.fecha)
       return recordDate >= sevenDaysAgo && recordDate <= today
     })
 
     // Agrupar por fecha
-    const dataByDate = recentRecords.reduce((acc, record) => {
-      const date = record.fecha
-      if (!acc[date]) {
-        acc[date] = []
-      }
-      acc[date].push(record.oee)
-      return acc
-    }, {} as Record<string, number[]>)
+    const dataByDate = recentRecords.reduce(
+      (acc, record) => {
+        const date = record.fecha
+        if (!acc[date]) {
+          acc[date] = []
+        }
+        acc[date].push(record.oee)
+        return acc
+      },
+      {} as Record<string, number[]>,
+    )
 
     // Crear labels y calcular promedios
     const labels: string[] = []
@@ -89,14 +86,16 @@ export const useOEEStore = defineStore('oee', () => {
     Object.keys(dataByDate)
       .sort()
       .slice(-7) // Últimos 7 días
-      .forEach(date => {
+      .forEach((date) => {
         const records = dataByDate[date]
         const average = records.reduce((sum, oee) => sum + oee, 0) / records.length
 
-        labels.push(new Date(date).toLocaleDateString('es-ES', {
-          month: 'short',
-          day: 'numeric'
-        }))
+        labels.push(
+          new Date(date).toLocaleDateString('es-ES', {
+            month: 'short',
+            day: 'numeric',
+          }),
+        )
         oeeData.push(Math.round(average * 10) / 10)
       })
 
@@ -108,9 +107,9 @@ export const useOEEStore = defineStore('oee', () => {
           data: oeeData,
           borderColor: '#3B82F6',
           backgroundColor: 'rgba(59, 130, 246, 0.1)',
-          borderWidth: 2
-        }
-      ]
+          borderWidth: 2,
+        },
+      ],
     }
   })
 
@@ -132,7 +131,7 @@ export const useOEEStore = defineStore('oee', () => {
       const [dashboardResponse, registrosResponse, areasResponse] = await Promise.all([
         api.get(API_ENDPOINTS.REGISTROS + 'dashboard/'),
         api.get(API_ENDPOINTS.REGISTROS + '?page_size=50&ordering=-fecha,-id'),
-        api.get(API_ENDPOINTS.AREAS)
+        api.get(API_ENDPOINTS.AREAS),
       ])
 
       // Actualizar estado
@@ -140,7 +139,6 @@ export const useOEEStore = defineStore('oee', () => {
       registros.value = registrosResponse.data.results || registrosResponse.data
       areas.value = areasResponse.data.results || areasResponse.data
       lastUpdate.value = new Date()
-
     } catch (err: any) {
       console.error('Error fetching dashboard data:', err)
       error.value = err.response?.data?.message || 'Error al cargar datos del dashboard'
@@ -152,7 +150,7 @@ export const useOEEStore = defineStore('oee', () => {
           disponibilidad_promedio: 0,
           rendimiento_promedio: 0,
           calidad_promedio: 0,
-          total_registros: 0
+          total_registros: 0,
         }
       }
     } finally {
@@ -161,10 +159,10 @@ export const useOEEStore = defineStore('oee', () => {
   }
 
   async function fetchRegistros(params?: {
-    area?: number;
-    fecha_inicio?: string;
-    fecha_fin?: string;
-    page?: number;
+    area?: number
+    fecha_inicio?: string
+    fecha_fin?: string
+    page?: number
   }) {
     isLoading.value = true
     error.value = null
@@ -190,7 +188,6 @@ export const useOEEStore = defineStore('oee', () => {
       }
 
       return response.data
-
     } catch (err: any) {
       console.error('Error fetching registros:', err)
       error.value = err.response?.data?.message || 'Error al cargar registros'
@@ -214,7 +211,6 @@ export const useOEEStore = defineStore('oee', () => {
       await fetchDashboardData()
 
       return response.data
-
     } catch (err: any) {
       console.error('Error creating registro:', err)
       error.value = err.response?.data?.message || 'Error al crear registro'
@@ -232,7 +228,7 @@ export const useOEEStore = defineStore('oee', () => {
       const response = await api.patch(API_ENDPOINTS.REGISTRO_DETAIL(id), registroData)
 
       // Actualizar en la lista local
-      const index = registros.value.findIndex(r => r.id === id)
+      const index = registros.value.findIndex((r) => r.id === id)
       if (index !== -1) {
         registros.value[index] = response.data
       }
@@ -241,7 +237,6 @@ export const useOEEStore = defineStore('oee', () => {
       await fetchDashboardData()
 
       return response.data
-
     } catch (err: any) {
       console.error('Error updating registro:', err)
       error.value = err.response?.data?.message || 'Error al actualizar registro'
@@ -259,11 +254,10 @@ export const useOEEStore = defineStore('oee', () => {
       await api.delete(API_ENDPOINTS.REGISTRO_DETAIL(id))
 
       // Remover de la lista local
-      registros.value = registros.value.filter(r => r.id !== id)
+      registros.value = registros.value.filter((r) => r.id !== id)
 
       // Actualizar dashboard data
       await fetchDashboardData()
-
     } catch (err: any) {
       console.error('Error deleting registro:', err)
       error.value = err.response?.data?.message || 'Error al eliminar registro'
@@ -291,11 +285,11 @@ export const useOEEStore = defineStore('oee', () => {
   }
 
   function getRegistrosByArea(areaId: number) {
-    return registros.value.filter(registro => registro.area === areaId)
+    return registros.value.filter((registro) => registro.area === areaId)
   }
 
   function getRegistrosByDateRange(fechaInicio: string, fechaFin: string) {
-    return registros.value.filter(registro => {
+    return registros.value.filter((registro) => {
       const fecha = new Date(registro.fecha)
       const inicio = new Date(fechaInicio)
       const fin = new Date(fechaFin)
@@ -338,6 +332,6 @@ export const useOEEStore = defineStore('oee', () => {
     clearError,
     getRegistrosByArea,
     getRegistrosByDateRange,
-    startAutoRefresh
+    startAutoRefresh,
   }
 })
