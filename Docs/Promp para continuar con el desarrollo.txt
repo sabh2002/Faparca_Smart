@@ -1,0 +1,747 @@
+ 
+# 🚀 PROMPT MAESTRO - Continuación Desarrollo Sistema OEE FAPARCA
+
+## CONTEXTO DEL PROYECTO
+
+Estoy desarrollando un **Sistema de Monitoreo OEE (Overall Equipment Effectiveness)** para una fábrica de pasta en Venezuela. El proyecto tiene el **backend 100% completado** en Django REST Framework y necesito terminar el **frontend en Vue.js 3 + TypeScript**.
+
+### 🎯 Tu Misión
+Completar el desarrollo del frontend, específicamente:
+1. Dashboard principal con KPIs
+2. Formulario de registro de datos OEE
+3. Sistema de reportes
+4. Componentes reutilizables
+
+---
+
+## 📁 ARCHIVOS CLAVE DEL PROYECTO
+
+### 1️⃣ **Tipos TypeScript** (`/src/types/oee.ts`)
+```typescript
+// COMPARTIR ESTE ARCHIVO COMPLETO - Define todas las interfaces
+export interface Area {
+  id: number;
+  nombre: string;
+  codigo: string;
+  tipo: 'empaque' | 'prensa';
+  capacidad_teorica: number;
+  capacidad_real: number;
+  activa: boolean;
+  created_at: string;
+}
+
+export interface Usuario {
+  id: number;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  rol: 'administrador' | 'supervisor' | 'operador' | 'viewer';
+  area_asignada?: number;
+  area_nombre?: string;
+  activo: boolean;
+}
+
+export interface RegistroOEE {
+  id?: number;
+  area: number;
+  area_nombre?: string;
+  fecha: string;
+  turno: 'A' | 'B' | 'C';
+  plan_produccion: number;
+  produccion_real: number;
+  hora_inicio: string;
+  hora_fin: string;
+  observaciones?: string;
+
+  // Específicos empaque
+  formato_producto?: string;
+  produccion_kg?: number;
+
+  // Específicos prensa
+  lectura_inicial?: number;
+  lectura_final?: number;
+  paradas?: number;
+  motivo_parada?: string;
+
+  // Calculados
+  disponibilidad: number;
+  rendimiento: number;
+  calidad: number;
+  oee: number;
+}
+
+export interface DashboardData {
+  oee_promedio: number;
+  disponibilidad_promedio: number;
+  rendimiento_promedio: number;
+  calidad_promedio: number;
+  total_registros: number;
+  registros_hoy?: number;
+  areas_activas?: number;
+}
+```
+
+### 2️⃣ **Servicio API** (`/src/services/api.ts`)
+```typescript
+// COMPARTIR ESTE ARCHIVO - Configuración de Axios
+import axios from 'axios';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+
+export const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: { 'Content-Type': 'application/json' },
+  timeout: 30000,
+  withCredentials: true,
+});
+
+// Interceptor para agregar token
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('auth_token');
+  if (token) {
+    try {
+      const tokenData = JSON.parse(token);
+      config.headers.Authorization = `Token ${tokenData.key || tokenData}`;
+    } catch {
+      config.headers.Authorization = `Token ${token}`;
+    }
+  }
+  return config;
+});
+
+// Interceptor para manejar errores
+api.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user_data');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default api;
+```
+
+### 3️⃣ **Store de Autenticación** (`/src/stores/auth.ts`)
+```typescript
+// COMPARTIR PARTES RELEVANTES - Store Pinia
+import { defineStore } from 'pinia';
+import { ref, computed } from 'vue';
+import AuthService from '@/services/auth';
+
+export const useAuthStore = defineStore('auth', () => {
+  const user = ref<Usuario | null>(null);
+  const isLoading = ref(false);
+
+  const isAuthenticated = computed(() => !!user.value);
+  const userRole = computed(() => user.value?.rol);
+  const canEdit = computed(() => {
+    return ['administrador', 'supervisor', 'operador'].includes(userRole.value || '');
+  });
+
+  // Métodos de autenticación ya implementados
+  async function login(credentials: LoginData) { /* ... */ }
+  async function logout() { /* ... */ }
+
+  return { user, isAuthenticated, userRole, canEdit, login, logout };
+});
+```
+
+### 4️⃣ **Configuración** (`/src/config/index.ts`)
+```typescript
+// COMPARTIR CONFIGURACIÓN DE COLORES Y CONSTANTES
+export const THEME = {
+  colors: {
+    primary: '#2563eb',
+    success: '#10b981',
+    warning: '#f59e0b',
+    danger: '#ef4444',
+
+    // OEE específicos
+    oeeExcellent: '#10b981', // >= 85%
+    oeeGood: '#84cc16',      // >= 70%
+    oeeRegular: '#f59e0b',   // >= 60%
+    oeePoor: '#ef4444',      // < 60%
+  }
+};
+
+export const API_ENDPOINTS = {
+  AREAS: '/areas/',
+  REGISTROS: '/registros/',
+  DASHBOARD: '/registros/dashboard/',
+};
+```
+
+---
+
+## 🏗️ ESTRUCTURA DEL PROYECTO
+
+```
+FRONTEND/
+├── src/
+│   ├── views/
+│   │   ├── Login.vue         ✅ COMPLETADO
+│   │   ├── Dashboard.vue     ❌ NECESITO QUE CREES
+│   │   ├── Registro.vue      ❌ NECESITO QUE CREES
+│   │   ├── Reportes.vue      ❌ NECESITO QUE CREES
+│   │   └── Administracion.vue ❌ NECESITO QUE CREES
+│   ├── components/
+│   │   ├── OEEIndicator.vue  ❌ NECESITO QUE CREES
+│   │   ├── AreaSelector.vue  ❌ NECESITO QUE CREES
+│   │   ├── TurnoSelector.vue ❌ NECESITO QUE CREES
+│   │   └── KPICard.vue       ❌ NECESITO QUE CREES
+│   ├── services/
+│   │   ├── api.ts            ✅ Completado
+│   │   └── auth.ts           ✅ Completado
+│   ├── stores/
+│   │   ├── auth.ts           ✅ Completado
+│   │   └── oee.ts            ❌ NECESITO QUE CREES
+│   └── router/
+│       └── index.ts          ✅ Completado
+```
+
+---
+
+## 📋 ESPECIFICACIONES DETALLADAS
+
+### 1️⃣ **DASHBOARD PRINCIPAL** (`Dashboard.vue`)
+
+#### Requisitos Funcionales:
+- **4 KPI Cards principales** en la parte superior:
+  - OEE Promedio (color según valor)
+  - Disponibilidad Promedio
+  - Rendimiento Promedio
+  - Calidad Promedio
+
+- **Tabla de últimos registros** (10 más recientes):
+  - Columnas: Área, Fecha, Turno, OEE, Usuario
+  - Colores en OEE: verde(>85%), amarillo(70-84%), rojo(<70%)
+  - Click en fila para ver detalle
+
+- **Cards de estado por área**:
+  - Una card por cada área activa
+  - Mostrar último OEE registrado
+  - Indicador visual tipo semáforo
+  - Mini sparkline de tendencia (últimos 7 días)
+
+- **Gráfico de línea de tendencia OEE**:
+  - Últimos 7 días
+  - Una línea por área
+  - Interactivo con tooltips
+
+#### Código Base para Empezar:
+```vue
+<template>
+  <div class="min-h-screen bg-gray-50">
+    <div class="container mx-auto px-4 py-8">
+      <!-- Header -->
+      <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">Dashboard OEE</h1>
+        <p class="text-gray-600 mt-2">
+          Monitoreo en tiempo real - {{ currentDate }}
+        </p>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <KPICard
+          v-for="kpi in kpis"
+          :key="kpi.title"
+          :title="kpi.title"
+          :value="kpi.value"
+          :suffix="kpi.suffix"
+          :color="kpi.color"
+          :trend="kpi.trend"
+        />
+      </div>
+
+      <!-- Áreas Status + Recent Records -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Areas Status -->
+        <div class="lg:col-span-1">
+          <h2 class="text-xl font-semibold mb-4">Estado por Área</h2>
+          <div class="space-y-4">
+            <AreaStatusCard
+              v-for="area in areasStatus"
+              :key="area.id"
+              :area="area"
+            />
+          </div>
+        </div>
+
+        <!-- Recent Records Table -->
+        <div class="lg:col-span-2">
+          <h2 class="text-xl font-semibold mb-4">Registros Recientes</h2>
+          <div class="bg-white rounded-lg shadow overflow-hidden">
+            <table class="min-w-full">
+              <!-- Implementar tabla -->
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trends Chart -->
+      <div class="mt-8 bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold mb-4">Tendencia OEE - Últimos 7 días</h2>
+        <LineChart :data="chartData" :options="chartOptions" />
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted, computed } from 'vue';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import api from '@/services/api';
+import type { DashboardData, Area, RegistroOEE } from '@/types/oee';
+
+// State
+const dashboardData = ref<DashboardData | null>(null);
+const recentRecords = ref<RegistroOEE[]>([]);
+const areasStatus = ref<any[]>([]);
+const isLoading = ref(true);
+
+// Computed
+const currentDate = computed(() =>
+  format(new Date(), "EEEE, d 'de' MMMM yyyy", { locale: es })
+);
+
+const kpis = computed(() => {
+  if (!dashboardData.value) return [];
+
+  return [
+    {
+      title: 'OEE Promedio',
+      value: dashboardData.value.oee_promedio,
+      suffix: '%',
+      color: getOEEColor(dashboardData.value.oee_promedio),
+      trend: 'up'
+    },
+    // Más KPIs...
+  ];
+});
+
+// Methods
+const getOEEColor = (value: number) => {
+  if (value >= 85) return 'success';
+  if (value >= 70) return 'warning';
+  return 'danger';
+};
+
+const loadDashboard = async () => {
+  try {
+    isLoading.value = true;
+
+    // Cargar datos del dashboard
+    const response = await api.get('/registros/dashboard/');
+    dashboardData.value = response.data;
+
+    // Cargar registros recientes
+    const recordsResponse = await api.get('/registros/', {
+      params: { limit: 10, ordering: '-fecha,-turno' }
+    });
+    recentRecords.value = recordsResponse.data.results;
+
+    // Cargar estado de áreas
+    const areasResponse = await api.get('/areas/');
+    // Procesar áreas con su último OEE
+
+  } catch (error) {
+    console.error('Error cargando dashboard:', error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// Lifecycle
+onMounted(() => {
+  loadDashboard();
+
+  // Auto-refresh cada 30 segundos
+  const interval = setInterval(loadDashboard, 30000);
+
+  // Cleanup
+  onUnmounted(() => clearInterval(interval));
+});
+</script>
+```
+
+### 2️⃣ **FORMULARIO DE REGISTRO** (`Registro.vue`)
+
+#### Requisitos Funcionales:
+- **Selector de área** que determina campos a mostrar
+- **Campos comunes**:
+  - Fecha (default: hoy)
+  - Turno (A/B/C basado en hora actual)
+  - Plan de producción
+  - Producción real
+  - Hora inicio/fin
+  - Observaciones
+
+- **Campos para EMPAQUE**:
+  - Formato de producto (select)
+  - Producción en KG
+  - Bultos producidos
+
+- **Campos para PRENSA**:
+  - Lectura inicial contador
+  - Lectura final contador
+  - Número de paradas
+  - Motivo de paradas
+
+- **Cálculo en tiempo real**:
+  - Mostrar OEE mientras se llenan campos
+  - Preview antes de guardar
+  - Validaciones instantáneas
+
+#### Lógica de Cálculo:
+```javascript
+// DISPONIBILIDAD
+const calcularDisponibilidad = (horaInicio, horaFin) => {
+  const inicio = new Date(`2024-01-01 ${horaInicio}`);
+  const fin = new Date(`2024-01-01 ${horaFin}`);
+
+  // Si cruza medianoche
+  if (fin < inicio) {
+    fin.setDate(fin.getDate() + 1);
+  }
+
+  const horasReales = (fin - inicio) / (1000 * 60 * 60);
+  return Math.min((horasReales / 8) * 100, 100);
+};
+
+// RENDIMIENTO
+const calcularRendimiento = (tipo, produccionReal, plan, capacidadTeorica, horas) => {
+  if (tipo === 'empaque') {
+    return (produccionReal / plan) * 100;
+  } else { // prensa
+    const produccionTeorica = capacidadTeorica * horas;
+    return (produccionReal / produccionTeorica) * 100;
+  }
+};
+
+// OEE
+const calcularOEE = (disponibilidad, rendimiento, calidad = 100) => {
+  return (disponibilidad * rendimiento * calidad) / 10000;
+};
+```
+
+### 3️⃣ **COMPONENTE OEE INDICATOR** (`OEEIndicator.vue`)
+
+```vue
+<template>
+  <div class="relative inline-flex items-center justify-center">
+    <!-- Círculo de progreso SVG -->
+    <svg class="transform -rotate-90 w-20 h-20">
+      <circle
+        cx="40"
+        cy="40"
+        r="36"
+        stroke="currentColor"
+        :stroke-width="strokeWidth"
+        fill="none"
+        class="text-gray-200"
+      />
+      <circle
+        cx="40"
+        cy="40"
+        r="36"
+        stroke="currentColor"
+        :stroke-width="strokeWidth"
+        fill="none"
+        :stroke-dasharray="circumference"
+        :stroke-dashoffset="strokeDashoffset"
+        class="transition-all duration-500"
+        :class="colorClass"
+      />
+    </svg>
+
+    <!-- Valor en el centro -->
+    <div class="absolute flex flex-col items-center">
+      <span class="text-2xl font-bold" :class="textColorClass">
+        {{ value }}%
+      </span>
+      <span class="text-xs text-gray-500">{{ label }}</span>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue';
+
+const props = defineProps<{
+  value: number;
+  label?: string;
+  strokeWidth?: number;
+}>();
+
+const circumference = computed(() => 2 * Math.PI * 36);
+
+const strokeDashoffset = computed(() => {
+  const offset = circumference.value - (props.value / 100) * circumference.value;
+  return offset;
+});
+
+const colorClass = computed(() => {
+  if (props.value >= 85) return 'text-green-500';
+  if (props.value >= 70) return 'text-yellow-500';
+  return 'text-red-500';
+});
+
+const textColorClass = computed(() => {
+  if (props.value >= 85) return 'text-green-600';
+  if (props.value >= 70) return 'text-yellow-600';
+  return 'text-red-600';
+});
+</script>
+```
+
+---
+
+## 🎨 PATRONES DE DISEÑO A SEGUIR
+
+### Composables para Lógica Reutilizable
+```typescript
+// composables/useOEECalculator.ts
+export function useOEECalculator() {
+  const calcularDisponibilidad = (inicio: string, fin: string): number => {
+    // Lógica de cálculo
+  };
+
+  const calcularRendimiento = (
+    tipo: 'empaque' | 'prensa',
+    produccionReal: number,
+    parametros: any
+  ): number => {
+    // Lógica según tipo
+  };
+
+  return {
+    calcularDisponibilidad,
+    calcularRendimiento,
+    calcularOEE
+  };
+}
+```
+
+### Store para Estado Global
+```typescript
+// stores/oee.ts
+export const useOEEStore = defineStore('oee', () => {
+  const registros = ref<RegistroOEE[]>([]);
+  const areas = ref<Area[]>([]);
+
+  const fetchRegistros = async (filters?: any) => {
+    const response = await api.get('/registros/', { params: filters });
+    registros.value = response.data.results;
+  };
+
+  const createRegistro = async (data: Partial<RegistroOEE>) => {
+    const response = await api.post('/registros/', data);
+    registros.value.unshift(response.data);
+    return response.data;
+  };
+
+  return { registros, areas, fetchRegistros, createRegistro };
+});
+```
+
+---
+
+## 📊 APIS ENDPOINTS DISPONIBLES
+
+### Áreas
+```http
+GET /api/areas/
+Response: [
+  {
+    "id": 1,
+    "nombre": "Empaque Cobra",
+    "codigo": "EMP-01",
+    "tipo": "empaque",
+    "capacidad_teorica": 2500,
+    "capacidad_real": 2300,
+    "activa": true
+  }
+]
+
+GET /api/areas/por_tipo/
+Response: {
+  "empaque": [...],
+  "prensa": [...]
+}
+```
+
+### Registros OEE
+```http
+POST /api/registros/
+Body: {
+  "area": 1,
+  "fecha": "2024-01-08",
+  "turno": "A",
+  "plan_produccion": 2000,
+  "produccion_real": 1850,
+  "hora_inicio": "06:00",
+  "hora_fin": "14:00",
+  "formato_producto": "Spaghetti 500g",  // solo empaque
+  "lectura_inicial": 1000,               // solo prensa
+  "lectura_final": 2500                  // solo prensa
+}
+
+Response: {
+  "id": 1,
+  "area_nombre": "Empaque Cobra",
+  "disponibilidad": 100,
+  "rendimiento": 92.5,
+  "calidad": 100,
+  "oee": 92.5,
+  ...campos enviados
+}
+
+GET /api/registros/dashboard/
+Response: {
+  "oee_promedio": 78.5,
+  "disponibilidad_promedio": 95.2,
+  "rendimiento_promedio": 82.4,
+  "calidad_promedio": 100,
+  "total_registros": 245,
+  "registros_hoy": 6,
+  "areas_activas": 5
+}
+```
+
+---
+
+## ⚙️ CONFIGURACIÓN DEL ENTORNO
+
+### Variables de Entorno (.env)
+```env
+VITE_API_BASE_URL=http://localhost:8000/api
+VITE_APP_TITLE=Sistema OEE FAPARCA
+VITE_APP_VERSION=1.0.0
+VITE_APP_ENV=development
+```
+
+### Dependencias Necesarias
+```json
+{
+  "dependencies": {
+    "vue": "^3.4.0",
+    "vue-router": "^4.2.0",
+    "pinia": "^2.1.0",
+    "axios": "^1.6.0",
+    "@vueuse/core": "^10.7.0",
+    "date-fns": "^3.0.0",
+    "chart.js": "^4.4.0",
+    "vue-chartjs": "^5.3.0",
+    "xlsx": "^0.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "tailwindcss": "^3.4.0"
+  }
+}
+```
+
+---
+
+## 🧪 CASOS DE PRUEBA
+
+### Dashboard
+1. ✅ Carga KPIs en menos de 2 segundos
+2. ✅ Actualiza automáticamente cada 30 segundos
+3. ✅ Colores correctos según valor OEE
+4. ✅ Tabla muestra 10 registros más recientes
+5. ✅ Responsive en tablets (768px)
+
+### Registro
+1. ✅ Formulario cambia según tipo de área
+2. ✅ Calcula OEE en tiempo real
+3. ✅ Valida que producción real > 0
+4. ✅ Valida lectura final > inicial (prensas)
+5. ✅ Guarda correctamente y actualiza dashboard
+
+### Reportes
+1. ✅ Filtros funcionan correctamente
+2. ✅ Exporta a Excel con formato
+3. ✅ Gráficos se actualizan con filtros
+4. ✅ Paginación funciona
+5. ✅ Ordenamiento por columnas
+
+---
+
+## 🚀 INSTRUCCIONES DE IMPLEMENTACIÓN
+
+### Paso 1: Dashboard
+1. Crear `Dashboard.vue` con el template base proporcionado
+2. Implementar `KPICard.vue` component
+3. Implementar llamadas API para datos
+4. Agregar auto-refresh con `setInterval`
+5. Integrar Chart.js para gráfico de tendencias
+
+### Paso 2: Formulario Registro
+1. Crear `Registro.vue` con formulario adaptativo
+2. Implementar `AreaSelector.vue` y `TurnoSelector.vue`
+3. Agregar lógica de cálculo OEE
+4. Implementar validaciones en tiempo real
+5. Conectar con API POST `/registros/`
+
+### Paso 3: Reportes
+1. Crear `Reportes.vue` con filtros
+2. Implementar tabla con paginación
+3. Agregar gráficos comparativos
+4. Implementar exportación Excel con SheetJS
+5. Agregar estadísticas agregadas
+
+### Paso 4: Testing
+1. Probar cada componente individualmente
+2. Verificar responsive design
+3. Probar con datos reales
+4. Verificar performance
+5. Testing en tablets objetivo
+
+---
+
+## 📝 NOTAS IMPORTANTES
+
+1. **El backend está 100% funcional** - No necesitas modificarlo
+2. **Autenticación ya funciona** - Token en headers automáticamente
+3. **Usa Tailwind CSS** - No escribas CSS personalizado
+4. **TypeScript estricto** - Define tipos para todo
+5. **Composition API** - Usa `<script setup>` siempre
+6. **Manejo de errores** - Try/catch en todas las llamadas API
+7. **Loading states** - Muestra spinners mientras carga
+8. **Responsive** - Mobile-first, optimizado para tablets
+
+---
+
+## 🎯 CRITERIOS DE ÉXITO
+
+El frontend estará completo cuando:
+- [ ] Dashboard muestra datos en tiempo real
+- [ ] Formulario permite registrar datos sin errores
+- [ ] Reportes generan análisis útiles
+- [ ] Exportación a Excel funciona
+- [ ] Interface es intuitiva y responsive
+- [ ] No hay errores en consola
+- [ ] Performance < 3 segundos carga inicial
+- [ ] Auto-refresh no causa memory leaks
+
+---
+
+## 💬 COMUNICACIÓN ESPERADA
+
+Cuando implementes, por favor:
+1. Muestra el código completo, no fragmentos
+2. Explica decisiones de diseño importantes
+3. Señala cualquier asunción que hagas
+4. Sugiere mejoras si las ves
+5. Pregunta si algo no está claro
+
+**¡Empecemos con el Dashboard.vue completo!**

@@ -1,29 +1,404 @@
- # Directorios de Python y Django
-*.pyc
-__pycache__/
-*.sqlite3
-.venv/
-env/
-venv/
-media/
-local_settings.py
+# ===== CONFIGURACIÓN GENERAL =====
 
-# Archivos de sistema y logs
+# Archivos del sistema operativo
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+desktop.ini
+
+# Archivos temporales
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# ===== NODE.JS / NPM =====
+
+# Dependencias
+node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.idea/
-.vscode/
+pnpm-debug.log*
 
-# Directorios y archivos de Node.js y Vue
-/node_modules
-/dist
+# Archivos de package managers
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Cache de npm
+.npm/
+.pnpm-store/
+
+# Archivos de yarn v2
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# ===== FRONTEND VUE.JS =====
+
+# Build outputs
+/FRONTEND/dist/
+/FRONTEND/dist-ssr/
+/FRONTEND/build/
+
+# Cache y archivos temporales
+/FRONTEND/.vite/
+/FRONTEND/.cache/
+/FRONTEND/.parcel-cache/
+/FRONTEND/.nuxt/
+/FRONTEND/.next/
+
+# TypeScript
+/FRONTEND/*.tsbuildinfo
+/FRONTEND/.tsbuildinfo
+/FRONTEND/tsconfig.tsbuildinfo
+
+# ESLint cache
+/FRONTEND/.eslintcache
+
+# Vite
+/FRONTEND/vite.config.*.timestamp-*
+
+# Testing
+/FRONTEND/coverage/
+/FRONTEND/.nyc_output/
+/FRONTEND/test-results/
+/FRONTEND/playwright-report/
+
+# Storybook
+/FRONTEND/storybook-static/
+
+# ===== PYTHON / DJANGO =====
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Django
+/BACKEND/*/migrations/0*.py
+!/BACKEND/*/migrations/__init__.py
+/BACKEND/db.sqlite3
+/BACKEND/db.sqlite3-journal
+/BACKEND/media/
+/BACKEND/static/
+/BACKEND/staticfiles/
+/BACKEND/collected_static/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Virtual environments específicos
+/BACKEND/venv/
+/BACKEND/env/
+/BACKEND/.venv/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# ===== EDITORES E IDEs =====
+
+# Visual Studio Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+# Configuración local de VSCode
+.history/
+*.vsix
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Sublime Text
+*.tmlanguage.cache
+*.tmPreferences.cache
+*.stTheme.cache
+*.sublime-workspace
+*.sublime-project
+
+# Atom
+.atom/
+
+# Vim
+*.swp
+*.swo
+*~
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# ===== LOGS =====
+
+# Logs generales
+logs/
+*.log
+*.log.*
+
+# Logs específicos de la aplicación
+/BACKEND/logs/
+/FRONTEND/logs/
+
+# PM2 logs
+.pm2/
+
+# ===== BASES DE DATOS =====
+
+# SQLite
+*.sqlite
+*.sqlite3
+*.db
+
+# PostgreSQL
+*.pgsql
+
+# MySQL
+*.mysql
+
+# ===== ARCHIVOS DE CONFIGURACIÓN SENSIBLES =====
+
+# Variables de entorno
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
-/coverage
-/build
+
+# Configuración específica del entorno
+/BACKEND/.env
+/FRONTEND/.env
+/BACKEND/faparca_smart/.env
+/FRONTEND/.env.local
+
+# Claves y certificados
+*.key
+*.pem
+*.crt
+*.cer
+*.p12
+*.pfx
+
+# Configuración de Docker sensible
+docker-compose.override.yml
+.dockerignore
+
+# ===== ARCHIVOS DE BACKUP =====
+
+# Backups de base de datos
+*.backup
+*.bak
+*.dump
+*.sql.gz
+
+# Backups del sistema
+backup/
+backups/
+
+# ===== ARCHIVOS TEMPORALES DE DESARROLLO =====
+
+# Archivos de prueba
+test_files/
+temp/
+tmp/
+
+# Documentación generada
+docs/_build/
+docs/build/
+
+# ===== ARCHIVOS DE DEPLOYMENT =====
+
+# Archivos de producción
+production_settings.py
+prod_settings.py
+
+# Archivos de configuración del servidor
+nginx.conf
+apache.conf
+
+# Archivos de systemd
+*.service
+
+# ===== ARCHIVOS ESPECÍFICOS DEL PROYECTO =====
+
+# Archivos Excel originales (si contienen datos sensibles)
+*.xlsx
+*.xls
+/docs/INDICADORES*.xlsx
+
+# Archivos de configuración local
+local_settings.py
+dev_settings.py
+
+# Datos de prueba específicos
+test_data/
+sample_data/
+
+# Screenshots y capturas para documentación
+screenshots/
+captures/
+
+# ===== HERRAMIENTAS DE ANÁLISIS =====
+
+# SonarQube
+.sonarqube/
+.scannerwork/
+
+# CodeClimate
+.codeclimate.yml
+
+# ===== CACHE Y ARCHIVOS TEMPORALES ADICIONALES =====
+
+# Sass cache
+.sass-cache/
+
+# PostCSS cache
+.postcssrc.cache
+
+# Parcel cache
+.parcel-cache/
+
+# ESBuild cache
+.esbuild/
+
+# Webpack cache
+.webpack/
+
+# Rollup cache
+.rollup.cache/
+
+# ===== ARCHIVOS DE CONFIGURACIÓN DE CI/CD =====
+
+# GitHub Actions (mantener solo si es necesario)
+# .github/
+
+# GitLab CI (mantener solo si es necesario)
+# .gitlab-ci.yml
+
+# ===== COMENTARIOS ESPECIALES =====
+
+# Si necesitas incluir algún archivo específico que normalmente sería ignorado,
+# puedes usar ! al inicio de la línea:
+# !important-file.env
+
+# Para directorios específicos:
+# /path/to/specific/directory/
+
+# Para tipos de archivo en ubicaciones específicas:
+# /BACKEND/**/*.pyc
+
+# ===== NOTAS IMPORTANTES =====
+
+# Este .gitignore está diseñado para un proyecto Django + Vue.js
+# Ajusta según las necesidades específicas de tu proyecto
+# Siempre revisa antes de hacer commit para asegurar que no excluyes archivos importantes
+# Considera usar git check-ignore para verificar qué archivos están siendo ignorados
